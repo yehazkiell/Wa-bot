@@ -1,4 +1,5 @@
 import { getContentType } from 'ye-baileys';
+import * as googleTTS from 'google-tts-api';
 
 const startTime = Date.now();
 
@@ -50,7 +51,7 @@ export const handleMessage = async (sock, m) => {
                 await sock.sendMessage(jid, { text: `*Bot Status:*
 Uptime: ${hours}h ${minutes}m ${seconds}s
 Platform: ${process.platform}
-Version: 1.2.0 (Debug)` });
+Version: 1.3.0 (TTS Update)` });
                 break;
             }
 
@@ -59,6 +60,7 @@ Version: 1.2.0 (Debug)` });
 - ping: Reply with pong
 - status: Show bot uptime and info
 - menu: Show this menu
+- tts <text>: Convert text to speech (Indonesian)
 - event: Send a sample event message
 - order: Send a sample order message
 - poll: Send a sample poll result message
@@ -70,6 +72,25 @@ Version: 1.2.0 (Debug)` });
 - react: React to this message
 - newsletter: Get metadata of a newsletter (experimental)`;
                 await sock.sendMessage(jid, { text: menuText });
+                break;
+            }
+
+            case 'tts': {
+                const ttsText = args.join(' ');
+                if (!ttsText) {
+                    await sock.sendMessage(jid, { text: 'Usage: tts <text>' });
+                    break;
+                }
+                const url = googleTTS.getAudioUrl(ttsText, {
+                    lang: 'id',
+                    slow: false,
+                    host: 'https://translate.google.com',
+                });
+                await sock.sendMessage(jid, {
+                    audio: { url: url },
+                    mimetype: 'audio/mp4',
+                    ptt: true
+                });
                 break;
             }
 
