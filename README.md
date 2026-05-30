@@ -1,6 +1,6 @@
 # Wa-bot (Ye-Baileys Edition)
 
-Bot WhatsApp ringan yang dibangun menggunakan library [ye-baileys](https://github.com/yehazkiell/ye-baileys), dioptimalkan untuk penggunaan di lingkungan dengan sumber daya terbatas seperti Android (Termux).
+Bot WhatsApp ringan yang dibangun menggunakan library [ye-baileys](https://github.com/yehazkiell/ye-baileys/tree/upgrade-ye-baileys-v7-5-7-848479838923563821), dioptimalkan untuk penggunaan di lingkungan dengan sumber daya terbatas seperti Android (Termux).
 
 ## 🌍 Languages / Bahasa
 
