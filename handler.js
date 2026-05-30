@@ -20,7 +20,10 @@ export const handleMessage = async (sock, m) => {
 - call: Send a sample scheduled call message
 - album: Send a sample album (ye-baileys exclusive)
 - payment: Send a sample payment request (ye-baileys exclusive)
-- interactive: Send an interactive message (ye-baileys exclusive)`;
+- interactive: Send an interactive message (ye-baileys exclusive)
+- product: Send a product catalog message (ye-baileys exclusive)
+- react: React to this message
+- newsletter: Get metadata of a newsletter (experimental)`;
         await sock.sendMessage(jid, { text: menuText });
     } else if (command === 'event') {
         await sock.sendMessage(jid, {
@@ -99,5 +102,33 @@ export const handleMessage = async (sock, m) => {
                 }
             }
         });
+    } else if (command === 'product') {
+        await sock.sendMessage(jid, {
+            productMessage: {
+                title: 'Ye-Baileys Pro',
+                description: 'The ultimate WhatsApp bot library',
+                thumbnail: { url: 'https://picsum.photos/300' },
+                productId: 'pro-1',
+                retailerId: 'ye-baileys-shop',
+                url: 'https://github.com/yehazkiell/ye-baileys',
+                body: 'Get it now for a limited time!',
+                footer: 'Quality Guaranteed'
+            }
+        });
+    } else if (command === 'react') {
+        await sock.sendMessage(jid, {
+            react: {
+                text: '🚀',
+                key: msg.key
+            }
+        });
+    } else if (command.startsWith('newsletter ')) {
+        const newsletterJid = command.split(' ')[1];
+        try {
+            const metadata = await sock.newsletterMetadata('jid', newsletterJid);
+            await sock.sendMessage(jid, { text: `*Newsletter Info:*\nName: ${metadata.name}\nDescription: ${metadata.description}\nSubscribers: ${metadata.subscribers}` });
+        } catch (e) {
+            await sock.sendMessage(jid, { text: 'Error fetching newsletter metadata. Make sure the JID is correct.' });
+        }
     }
 };
