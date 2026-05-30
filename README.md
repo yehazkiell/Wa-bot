@@ -2,6 +2,43 @@
 
 Bot WhatsApp ringan yang dibangun menggunakan library [ye-baileys](https://github.com/yehazkiell/ye-baileys), dioptimalkan untuk penggunaan di lingkungan dengan sumber daya terbatas seperti Android (Termux).
 
+## 🌍 Languages / Bahasa
+
+### 1. 🇮🇩 Indonesian (Original)
+Bot WhatsApp ringan dioptimalkan untuk Android/Termux dengan fitur eksklusif Ye-Baileys.
+
+### 2. 🇺🇸 English
+A lightweight WhatsApp bot optimized for Android/Termux featuring Ye-Baileys exclusive message types.
+
+### 3. 🇪🇸 Spanish
+Un bot de WhatsApp ligero optimizado para Android/Termux con tipos de mensajes exclusivos de Ye-Baileys.
+
+### 4. 🇧🇷 Portuguese
+Um bot do WhatsApp leve otimizado para Android/Termux com tipos de mensagens exclusivos do Ye-Baileys.
+
+### 5. 🇫🇷 French
+Un bot WhatsApp léger optimisé pour Android/Termux avec des types de messages exclusifs Ye-Baileys.
+
+### 6. 🇩🇪 German
+Ein leichtgewichtiger WhatsApp-Bot, optimiert für Android/Termux, mit exklusiven Ye-Baileys-Nachrichtentypen.
+
+### 7. 🇷🇺 Russian
+Легкий WhatsApp-бот, оптимизированный для Android/Termux, с эксклюзивными типами сообщений Ye-Baileys.
+
+### 8. 🇯🇵 Japanese
+Android/Termux用に最適化された、Ye-Baileys独自のメッセージタイプを特徴とする軽量のWhatsAppボット。
+
+### 9. 🇰🇷 Korean
+Ye-Baileys 전용 메시지 유형을 특징으로 하는 Android/Termux용 경량 WhatsApp 봇.
+
+### 10. 🇨🇳 Chinese (Simplified)
+一个为 Android/Termux 优化的轻量级 WhatsApp 机器人，具有 Ye-Baileys 独有的消息类型。
+
+### 11. 🇸🇦 Arabic
+بوت واتساب خفيف الوزن ومحسن لنظام الأندرويد/Termux يتميز بأنواع رسائل Ye-Baileys الحصرية.
+
+---
+
 ## 🚀 Fitur Utama
 
 - **Pilihan Login**: Mendukung login via **QR Code** atau **Pairing Code**.
