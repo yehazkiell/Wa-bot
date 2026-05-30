@@ -48,11 +48,20 @@ async function startBot() {
         const text = msg.message.conversation ||
                      msg.message.extendedTextMessage?.text ||
                      '';
+        const command = text.toLowerCase();
 
-        if (text.toLowerCase() === 'ping') {
+        if (command === 'ping') {
             await sock.sendMessage(jid, { text: 'pong!' });
-        } else if (text.toLowerCase() === 'event') {
-            // Demonstration of custom eventMessage supported by ye-baileys
+        } else if (command === 'menu') {
+            const menuText = `*Available Commands:*
+- ping: Reply with pong
+- menu: Show this menu
+- event: Send a sample event message
+- order: Send a sample order message
+- poll: Send a sample poll result message
+- call: Send a sample scheduled call message`;
+            await sock.sendMessage(jid, { text: menuText });
+        } else if (command === 'event') {
             await sock.sendMessage(jid, {
                 eventMessage: {
                     name: 'Bot Event',
@@ -63,6 +72,36 @@ async function startBot() {
                         name: 'Jakarta, Indonesia'
                     },
                     startTime: Date.now() + 86400000
+                }
+            });
+        } else if (command === 'order') {
+            await sock.sendMessage(jid, {
+                orderMessage: {
+                    id: 'ord-123',
+                    title: 'Awesome Item',
+                    text: 'This is a sample order message from the bot!',
+                    amount: 50000,
+                    currency: 'IDR',
+                    itemCount: 1,
+                    seller: '0@s.whatsapp.net'
+                }
+            });
+        } else if (command === 'poll') {
+            await sock.sendMessage(jid, {
+                pollResultMessage: {
+                    name: 'Poll Results',
+                    pollVotes: [
+                        { optionName: 'Option A', optionVoteCount: 10 },
+                        { optionName: 'Option B', optionVoteCount: 5 }
+                    ]
+                }
+            });
+        } else if (command === 'call') {
+            await sock.sendMessage(jid, {
+                callMessage: {
+                    title: 'Scheduled Team Meeting',
+                    time: Date.now() + 3600000,
+                    type: 1
                 }
             });
         }
