@@ -22,58 +22,62 @@ const question = (query) => {
 };
 
 export async function connectToWhatsApp() {
-    const { state, saveCreds } = await useMultiFileAuthState(config.sessionName);
+    try {
+        const { state, saveCreds } = await useMultiFileAuthState(config.sessionName);
 
-    const usePairingCode = await question('Do you want to use Pairing Code? (y/n): ');
+        const usePairingCode = await question('Do you want to use Pairing Code? (y/n): ');
 
-    // Minimal mock logger to replace pino
-    const logger = {
-        level: 'silent',
-        silent: () => {},
-        info: () => {},
-        error: () => {},
-        debug: () => {},
-        warn: () => {},
-        trace: () => {},
-        child: () => logger
-    };
+        // Minimal logger that prints errors and info
+        const logger = {
+            level: 'info',
+            silent: () => {},
+            info: (...args) => console.log('[INFO]', ...args),
+            error: (...args) => console.error('[ERROR]', ...args),
+            debug: () => {},
+            warn: (...args) => console.warn('[WARN]', ...args),
+            trace: () => {},
+            child: () => logger
+        };
 
-    const sock = makeWASocket({
-        printQRInTerminal: usePairingCode.toLowerCase() !== 'y',
-        auth: state,
-        logger: logger
-    });
+        const sock = makeWASocket({
+            printQRInTerminal: usePairingCode.toLowerCase() !== 'y',
+            auth: state,
+            logger: logger
+        });
 
-    if (usePairingCode.toLowerCase() === 'y' && !sock.authState.creds.registered) {
-        const phoneNumber = await question('Please enter your phone number (with country code, e.g., 628xxx): ');
-        const code = await sock.requestPairingCode(phoneNumber);
-        console.log(`Your pairing code: ${code}`);
-    }
-
-    sock.ev.on('connection.update', (update) => {
-        const { connection, lastDisconnect, qr } = update;
-
-        if (qr && usePairingCode.toLowerCase() !== 'y') {
-            qrcode.generate(qr, { small: true });
+        if (usePairingCode.toLowerCase() === 'y' && !sock.authState.creds.registered) {
+            const phoneNumber = await question('Please enter your phone number (with country code, e.g., 628xxx): ');
+            const code = await sock.requestPairingCode(phoneNumber);
+            console.log(`Your pairing code: ${code}`);
         }
 
-        if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect.error instanceof Boom)
-                ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut
-                : true;
+        sock.ev.on('connection.update', (update) => {
+            const { connection, lastDisconnect, qr } = update;
 
-            console.log('connection closed due to ', lastDisconnect.error?.message || 'unknown error', ', reconnecting ', shouldReconnect);
-
-            if (shouldReconnect) {
-                connectToWhatsApp();
+            if (qr && usePairingCode.toLowerCase() !== 'y') {
+                qrcode.generate(qr, { small: true });
             }
-        } else if (connection === 'open') {
-            console.log('opened connection');
-        }
-    });
 
-    sock.ev.on('creds.update', saveCreds);
-    sock.ev.on('messages.upsert', (m) => handleMessage(sock, m));
+            if (connection === 'close') {
+                const error = lastDisconnect?.error;
+                const statusCode = error instanceof Boom ? error.output?.statusCode : null;
+                const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-    return sock;
+                console.log(`Connection closed: ${error?.message || 'unknown error'}. Reconnecting: ${shouldReconnect}`);
+
+                if (shouldReconnect) {
+                    connectToWhatsApp();
+                }
+            } else if (connection === 'open') {
+                console.log('Bot is now online!');
+            }
+        });
+
+        sock.ev.on('creds.update', saveCreds);
+        sock.ev.on('messages.upsert', (m) => handleMessage(sock, m));
+
+        return sock;
+    } catch (e) {
+        console.error('Connection logic error:', e);
+    }
 }
