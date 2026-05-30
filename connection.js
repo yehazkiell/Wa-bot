@@ -4,7 +4,6 @@ import {
     DisconnectReason
 } from 'ye-baileys';
 import qrcode from 'qrcode-terminal';
-import pino from 'pino';
 import { Boom } from '@hapi/boom';
 import { config } from './config.js';
 import { handleMessage } from './handler.js';
@@ -27,10 +26,22 @@ export async function connectToWhatsApp() {
 
     const usePairingCode = await question('Do you want to use Pairing Code? (y/n): ');
 
+    // Minimal mock logger to replace pino
+    const logger = {
+        level: 'silent',
+        silent: () => {},
+        info: () => {},
+        error: () => {},
+        debug: () => {},
+        warn: () => {},
+        trace: () => {},
+        child: () => logger
+    };
+
     const sock = makeWASocket({
         printQRInTerminal: usePairingCode.toLowerCase() !== 'y',
         auth: state,
-        logger: pino({ level: 'silent' })
+        logger: logger
     });
 
     if (usePairingCode.toLowerCase() === 'y' && !sock.authState.creds.registered) {
@@ -51,7 +62,7 @@ export async function connectToWhatsApp() {
                 ? lastDisconnect.error.output.statusCode !== DisconnectReason.loggedOut
                 : true;
 
-            console.log('connection closed due to ', lastDisconnect.error, ', reconnecting ', shouldReconnect);
+            console.log('connection closed due to ', lastDisconnect.error?.message || 'unknown error', ', reconnecting ', shouldReconnect);
 
             if (shouldReconnect) {
                 connectToWhatsApp();
