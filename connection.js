@@ -1,7 +1,8 @@
 import {
     makeWASocket,
     useMultiFileAuthState,
-    DisconnectReason
+    DisconnectReason,
+    delay
 } from 'ye-baileys';
 import qrcode from 'qrcode-terminal';
 import { Boom } from '@hapi/boom';
@@ -25,9 +26,11 @@ export async function connectToWhatsApp() {
     try {
         const { state, saveCreds } = await useMultiFileAuthState(config.sessionName);
 
-        const usePairingCode = await question('Do you want to use Pairing Code? (y/n): ');
+        let usePairingCode = 'n';
+        if (!state.creds.me) {
+            usePairingCode = await question('Do you want to use Pairing Code? (y/n): ');
+        }
 
-        // Minimal logger that prints errors and info
         const logger = {
             level: 'info',
             silent: () => {},
@@ -51,7 +54,7 @@ export async function connectToWhatsApp() {
             console.log(`Your pairing code: ${code}`);
         }
 
-        sock.ev.on('connection.update', (update) => {
+        sock.ev.on('connection.update', async (update) => {
             const { connection, lastDisconnect, qr } = update;
 
             if (qr && usePairingCode.toLowerCase() !== 'y') {
@@ -63,9 +66,10 @@ export async function connectToWhatsApp() {
                 const statusCode = error instanceof Boom ? error.output?.statusCode : null;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-                console.log(`Connection closed: ${error?.message || 'unknown error'}. Reconnecting: ${shouldReconnect}`);
+                console.log(`Connection closed: ${error?.message || 'unknown error'}. Reconnecting in 5s: ${shouldReconnect}`);
 
                 if (shouldReconnect) {
+                    await delay(5000);
                     connectToWhatsApp();
                 }
             } else if (connection === 'open') {

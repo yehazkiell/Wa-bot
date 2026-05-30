@@ -1,5 +1,7 @@
 import { getContentType } from 'ye-baileys';
 
+const startTime = Date.now();
+
 export const handleMessage = async (sock, m) => {
     try {
         const msg = m.messages[0];
@@ -8,33 +10,54 @@ export const handleMessage = async (sock, m) => {
         const jid = msg.key.remoteJid;
         const type = getContentType(msg.message);
 
-        let text = '';
+        let rawText = '';
         if (type === 'conversation') {
-            text = msg.message.conversation;
+            rawText = msg.message.conversation;
         } else if (type === 'extendedTextMessage') {
-            text = msg.message.extendedTextMessage.text;
+            rawText = msg.message.extendedTextMessage.text;
         } else if (type === 'buttonsResponseMessage') {
-            text = msg.message.buttonsResponseMessage.selectedButtonId;
+            rawText = msg.message.buttonsResponseMessage.selectedButtonId;
         } else if (type === 'listResponseMessage') {
-            text = msg.message.listResponseMessage.singleSelectReply.selectedRowId;
+            rawText = msg.message.listResponseMessage.singleSelectReply.selectedRowId;
         } else if (type === 'interactiveResponseMessage') {
-            const resp = JSON.parse(msg.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
-            text = resp.id || '';
+            try {
+                const resp = JSON.parse(msg.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
+                rawText = resp.id || '';
+            } catch (e) {
+                console.error('Error parsing interactive response:', e);
+            }
         }
 
+        const text = rawText.trim().replace(/\s+/g, ' ');
         if (!text) return;
 
-        const command = text.toLowerCase().split(' ')[0];
-        const args = text.split(' ').slice(1);
+        console.log(`[MESSAGE] from ${jid}: ${text}`);
+
+        const parts = text.split(' ');
+        const command = parts[0].toLowerCase();
+        const args = parts.slice(1);
 
         switch (command) {
             case 'ping':
                 await sock.sendMessage(jid, { text: 'pong!' });
                 break;
 
+            case 'status': {
+                const uptime = Math.floor((Date.now() - startTime) / 1000);
+                const hours = Math.floor(uptime / 3600);
+                const minutes = Math.floor((uptime % 3600) / 60);
+                const seconds = uptime % 60;
+                await sock.sendMessage(jid, { text: `*Bot Status:*
+Uptime: ${hours}h ${minutes}m ${seconds}s
+Platform: ${process.platform}
+Version: 1.2.0 (Debug)` });
+                break;
+            }
+
             case 'menu': {
                 const menuText = `*Available Commands:*
 - ping: Reply with pong
+- status: Show bot uptime and info
 - menu: Show this menu
 - event: Send a sample event message
 - order: Send a sample order message
