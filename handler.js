@@ -5,6 +5,7 @@ import speed from 'performance-now';
 
 const startTime = Date.now();
 const rateLimitMap = new Map();
+let isPublic = true;
 
 function runtime(seconds) {
     seconds = Number(seconds);
@@ -12,10 +13,10 @@ function runtime(seconds) {
     const h = Math.floor((seconds % (3600 * 24)) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-    const dDisplay = d > 0 ? d + (d === 1 ? " day, " : " days, ") : "";
-    const hDisplay = h > 0 ? h + (h === 1 ? " hour, " : " hours, ") : "";
-    const mDisplay = m > 0 ? m + (m === 1 ? " minute, " : " minutes, ") : "";
-    const sDisplay = s > 0 ? s + (s === 1 ? " second" : " seconds") : "";
+    const dDisplay = d > 0 ? d + (d === 1 ? " d, " : " d, ") : "";
+    const hDisplay = h > 0 ? h + (h === 1 ? " h, " : " h, ") : "";
+    const mDisplay = m > 0 ? m + (m === 1 ? " m, " : " m, ") : "";
+    const sDisplay = s > 0 ? s + (s === 1 ? " s" : " s") : "";
     return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
@@ -25,6 +26,11 @@ export const handleMessage = async (sock, m) => {
         if (!msg.message || msg.key.fromMe) return;
 
         const jid = msg.key.remoteJid;
+        const isGroup = jid.endsWith('@g.us');
+        const sender = msg.key.participant || msg.key.remoteJid;
+        const isOwner = sender === config.owner || sender.split('@')[0] === config.owner.split('@')[0];
+
+        if (!isPublic && !isOwner) return;
 
         // Rate Limiter
         const now = Date.now();
@@ -50,35 +56,19 @@ export const handleMessage = async (sock, m) => {
         }
 
         const text = rawText.trim().replace(/\s+/g, ' ');
-        if (!text) return;
-
-        if (!text.startsWith(config.prefix)) return;
+        if (!text || !text.startsWith(config.prefix)) return;
 
         console.log(`[COMMAND] ${jid}: ${text}`);
 
         const parts = text.slice(config.prefix.length).split(' ');
         const command = parts[0].toLowerCase();
         const args = parts.slice(1);
+        const prefix = config.prefix;
 
         switch (command) {
-            case 'halo':
-            case 'hi':
-                await sock.sendMessage(jid, { text: 'Halo! Saya adalah Ye-Baileys Ultimate Bot.' });
-                break;
-
-            case 'ping':
-                await sock.sendMessage(jid, { text: 'pong!' });
-                break;
-
-            case 'status': {
-                await sock.sendMessage(jid, { text: `*Status:* ${runtime(process.uptime())}` });
-                break;
-            }
-
             case 'allmenu': {
                 const timestampe = speed();
                 const latensie = speed() - timestampe;
-                const prefix = config.prefix;
                 const menu = `
 *⟨ INFO BOT ⟩*
 ▪️ *System*: ${config.botName}
@@ -88,122 +78,98 @@ export const handleMessage = async (sock, m) => {
 
 List Group
 ▫️ ${prefix}leavegc
-▫️ ${prefix}leavegcbyid
 ▫️ ${prefix}open
 ▫️ ${prefix}close
-▫️ ${prefix}opentime
-▫️ ${prefix}closetime
 ▫️ ${prefix}hidetag
-▫️ ${prefix}ht
 ▫️ ${prefix}everyone
-▫️ ${prefix}welcome
-▫️ ${prefix}setwelcome
-▫️ ${prefix}setleave
-▫️ ${prefix}antilinkgc
-▫️ ${prefix}antitaggc
-▫️ ${prefix}antibot
-
-List Download
-▫️ ${prefix}ai
-
-List Download
-▫️ ${prefix}spotify
-▫️ ${prefix}igdl
-▫️ ${prefix}tt
-▫️ ${prefix}play
-▫️ ${prefix}ytmp3
-▫️ ${prefix}ytmp4
-
-List Maker
-▫️ ${prefix}animbrat
-▫️ ${prefix}ktp-maker
-▫️ ${prefix}brat
-▫️ ${prefix}bratvid
-▫️ ${prefix}sticker
-
-List Game
-▫️ ${prefix}tebak lagu
-▫️ ${prefix}kuis math
-▫️ ${prefix}tebak gambar
-▫️ ${prefix}tebak kata
-▫️ ${prefix}tebak kalimat
-▫️ ${prefix}tebak lirik
-▫️ ${prefix}tebak tebakan
-▫️ ${prefix}tebak bendera
-▫️ ${prefix}tebak bendera2
-▫️ ${prefix}tebak kabupaten
-▫️ ${prefix}tebak kimia
-▫️ ${prefix}tebak asahotak
-▫️ ${prefix}tebak siapakahaku
-▫️ ${prefix}tebak susunkata
-▫️ ${prefix}tebak tekateki
-▫️ ${prefix}tebak jkt48
-
-List Owner
-▫️ ${prefix}leavegc
-▫️ ${prefix}setexif
-▫️ ${prefix}self
-▫️ ${prefix}public
-▫️ ${prefix}join
 
 List Tools
-▫️ ${prefix}translate
-▫️ ${prefix}reactch
-▫️ ${prefix}cekidch
+▫️ ${prefix}tts <teks>
 ▫️ ${prefix}cekidgc
-▫️ ${prefix}hitamkan
-▫️ ${prefix}toimg
-▫️ ${prefix}reactch
-▫️ ${prefix}hd
-▫️ ${prefix}tourl
-▫️ ${prefix}spam-pairing
-▫️ ${prefix}jarak
+▫️ ${prefix}status
+▫️ ${prefix}react
+
+List Ye-Baileys
+▫️ ${prefix}event
+▫️ ${prefix}order
+▫️ ${prefix}poll
+▫️ ${prefix}album
+▫️ ${prefix}payment
+▫️ ${prefix}interactive
+▫️ ${prefix}product
+▫️ ${prefix}newsletter <jid>
+
+List Owner
+▫️ ${prefix}self
+▫️ ${prefix}public
 `;
                 await sock.sendMessage(jid, { text: menu });
                 break;
             }
 
-            case 'menu': {
-                const menuText = `*Ye-Baileys Ultimate Menu:*
-- .allmenu: Daftar semua fitur
-- .halo: Sapa bot
-- .ping: Cek koneksi
-- .status: Status bot
-- .tts <teks>: Text to Speech
-- .kirim emoji: Kirim emoji random
-- .event: Pesan Event
-- .order: Pesan Order
-- .poll: Pesan Poll
-- .call: Pesan Panggilan
-- .album: Pesan Album
-- .payment: Request Payment
-- .interactive: Pesan Tombol
-- .product: Pesan Produk
-- .react: Reaksi emoji
-- .newsletter <jid>: Info Newsletter`;
-                await sock.sendMessage(jid, { text: menuText });
+            // --- Group Management ---
+            case 'leavegc':
+                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
+                if (!isOwner) return sock.sendMessage(jid, { text: 'Hanya Owner!' });
+                await sock.sendMessage(jid, { text: 'Sayonara!' });
+                await sock.groupLeave(jid);
                 break;
-            }
 
-            case 'kirim':
-                if (args[0] === 'emoji') {
-                    const emojis = ['🚀', '🤖', '🔥', '✨', '⭐'];
-                    const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                    await sock.sendMessage(jid, { text: randomEmoji });
+            case 'open':
+                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
+                await sock.groupSettingUpdate(jid, 'not_announcement');
+                await sock.sendMessage(jid, { text: 'Grup dibuka!' });
+                break;
+
+            case 'close':
+                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
+                await sock.groupSettingUpdate(jid, 'announcement');
+                await sock.sendMessage(jid, { text: 'Grup ditutup!' });
+                break;
+
+            case 'hidetag':
+            case 'everyone':
+                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
+                try {
+                    const metadata = await sock.groupMetadata(jid);
+                    const participants = metadata.participants.map(p => p.id);
+                    await sock.sendMessage(jid, { text: args.join(' ') || 'Hello everyone!', mentions: participants });
+                } catch (e) {
+                    await sock.sendMessage(jid, { text: 'Gagal mengambil metadata grup.' });
                 }
+                break;
+
+            // --- Owner Commands ---
+            case 'self':
+                if (!isOwner) return;
+                isPublic = false;
+                await sock.sendMessage(jid, { text: 'Bot sekarang mode Self.' });
+                break;
+
+            case 'public':
+                if (!isOwner) return;
+                isPublic = true;
+                await sock.sendMessage(jid, { text: 'Bot sekarang mode Publik.' });
+                break;
+
+            // --- Tools ---
+            case 'cekidgc':
+                await sock.sendMessage(jid, { text: `ID Grup: ${jid}` });
+                break;
+
+            case 'status':
+                await sock.sendMessage(jid, { text: `*Status Bot:* Online\n*Uptime:* ${runtime(process.uptime())}` });
                 break;
 
             case 'tts': {
                 const ttsText = args.join(' ');
-                if (!ttsText) {
-                    await sock.sendMessage(jid, { text: 'Usage: .tts <text>' });
-                    break;
-                }
+                if (!ttsText) return sock.sendMessage(jid, { text: 'Usage: .tts <text>' });
                 const url = googleTTS.getAudioUrl(ttsText, { lang: 'id', slow: false, host: 'https://translate.google.com' });
                 await sock.sendMessage(jid, { audio: { url: url }, mimetype: 'audio/mp4', ptt: true });
                 break;
             }
 
+            // --- Ye-Baileys Exclusive ---
             case 'event':
                 await sock.sendMessage(jid, {
                     eventMessage: {
@@ -291,10 +257,7 @@ List Tools
 
             case 'newsletter': {
                 const newsletterJid = args[0];
-                if (!newsletterJid) {
-                    await sock.sendMessage(jid, { text: 'Usage: .newsletter <jid>' });
-                    break;
-                }
+                if (!newsletterJid) return sock.sendMessage(jid, { text: 'Usage: .newsletter <jid>' });
                 try {
                     const metadata = await sock.newsletterMetadata('jid', newsletterJid);
                     await sock.sendMessage(jid, { text: `*Newsletter Info:*\nName: ${metadata.name}\nDescription: ${metadata.description}\nSubscribers: ${metadata.subscribers}` });
