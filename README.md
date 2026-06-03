@@ -1,4 +1,4 @@
-# Wa-bot (Ye-Baileys Edition)
+# Wa-bot (Ye-Baileys Ultimate Edition)
 
 Bot WhatsApp ringan yang dibangun menggunakan library [ye-baileys](https://github.com/yehazkiell/ye-baileys), dioptimalkan untuk penggunaan di lingkungan dengan sumber daya terbatas seperti Android (Termux).
 
@@ -44,6 +44,7 @@ Ye-Baileys 전용 메시지 유형을 특징으로 하는 Android/Termux용 경�
 - **Pilihan Login**: Mendukung login via **QR Code** atau **Pairing Code**.
 - **Ringan & Cepat**: Menghapus dependensi berat (sharp, sqlite3, ffmpeg) agar lancar di mobile.
 - **Ye-Baileys Exclusive**: Mendukung tipe pesan khusus seperti Album, Event, Order, Product, dan Newsletter.
+- **Keamanan**: Dilengkapi dengan **Anti-Delete** log dan **Rate Limiter**.
 - **Struktur Modular**: Kode dipisah menjadi `config.js`, `connection.js`, `handler.js`, dan `index.js`.
 
 ## 📦 Instalasi
@@ -68,20 +69,24 @@ Setelah menjalankan perintah di atas, Anda akan diberikan pilihan di terminal:
 
 ## 📜 Daftar Perintah (Commands)
 
-Kirim pesan berikut ke bot:
+*Gunakan prefix dot (`.`) sebelum perintah!*
 
-- `ping`: Membalas dengan "pong!".
-- `menu`: Menampilkan daftar semua fitur.
-- `event`: Mengirim contoh pesan Event (Ye-Baileys exclusive).
-- `order`: Mengirim contoh pesan Order/Pesanan.
-- `poll`: Mengirim contoh hasil voting/poll.
-- `call`: Mengirim contoh pesan panggilan terjadwal.
-- `album`: Mengirim beberapa gambar sekaligus dalam satu album.
-- `payment`: Mengirim permintaan pembayaran (Request Payment).
-- `interactive`: Mengirim pesan interaktif dengan tombol.
-- `product`: Mengirim katalog produk.
-- `react`: Memberikan reaksi emoji pada pesan Anda.
-- `newsletter <jid>`: Mengambil metadata dari JID Newsletter tertentu.
+- `.halo`: Sapa bot.
+- `.ping`: Cek koneksi.
+- `.status`: Melihat status bot (uptime, dsb).
+- `.menu`: Menampilkan daftar semua fitur.
+- `.tts <teks>`: Mengubah teks menjadi suara (Indonesian).
+- `.kirim emoji`: Mengirim emoji secara acak.
+- `.event`: Mengirim contoh pesan Event (Ye-Baileys exclusive).
+- `.order`: Mengirim contoh pesan Order/Pesanan.
+- `.poll`: Mengirim contoh hasil voting/poll.
+- `.call`: Mengirim contoh pesan panggilan terjadwal.
+- `.album`: Mengirim beberapa gambar sekaligus dalam satu album.
+- `.payment`: Mengirim permintaan pembayaran (Request Payment).
+- `.interactive`: Mengirim pesan interaktif dengan tombol.
+- `.product`: Mengirim katalog produk.
+- `.react`: Memberikan reaksi emoji pada pesan Anda.
+- `.newsletter <jid>`: Mengambil metadata dari JID Newsletter tertentu.
 
 ## 📂 Struktur Folder
 

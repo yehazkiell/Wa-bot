@@ -22,6 +22,8 @@ const question = (query) => {
     }));
 };
 
+const msgRetryCounterCache = {};
+
 export async function connectToWhatsApp() {
     try {
         const { state, saveCreds } = await useMultiFileAuthState(config.sessionName);
@@ -45,7 +47,8 @@ export async function connectToWhatsApp() {
         const sock = makeWASocket({
             printQRInTerminal: usePairingCode.toLowerCase() !== 'y',
             auth: state,
-            logger: logger
+            logger: logger,
+            msgRetryCounterCache
         });
 
         if (usePairingCode.toLowerCase() === 'y' && !sock.authState.creds.registered) {
@@ -78,7 +81,20 @@ export async function connectToWhatsApp() {
         });
 
         sock.ev.on('creds.update', saveCreds);
+
+        // Handle incoming messages
         sock.ev.on('messages.upsert', (m) => handleMessage(sock, m));
+
+        // Anti-Delete Implementation
+        sock.ev.on('messages.update', async (updates) => {
+            for (const update of updates) {
+                if (update.update.message === null) {
+                    const key = update.key;
+                    console.log(`[ANTI-DELETE] Message deleted from ${key.remoteJid}, ID: ${key.id}`);
+                    // Note: Real anti-delete would require message store to retrieve the deleted content.
+                }
+            }
+        });
 
         return sock;
     } catch (e) {
