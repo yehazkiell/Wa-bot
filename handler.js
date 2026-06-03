@@ -1,9 +1,23 @@
 import { getContentType } from 'ye-baileys';
 import { config } from './config.js';
 import * as googleTTS from 'google-tts-api';
+import speed from 'performance-now';
 
 const startTime = Date.now();
 const rateLimitMap = new Map();
+
+function runtime(seconds) {
+    seconds = Number(seconds);
+    const d = Math.floor(seconds / (3600 * 24));
+    const h = Math.floor((seconds % (3600 * 24)) / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    const dDisplay = d > 0 ? d + (d === 1 ? " day, " : " days, ") : "";
+    const hDisplay = h > 0 ? h + (h === 1 ? " hour, " : " hours, ") : "";
+    const mDisplay = m > 0 ? m + (m === 1 ? " minute, " : " minutes, ") : "";
+    const sDisplay = s > 0 ? s + (s === 1 ? " second" : " seconds") : "";
+    return dDisplay + hDisplay + mDisplay + sDisplay;
+}
 
 export const handleMessage = async (sock, m) => {
     try {
@@ -15,10 +29,7 @@ export const handleMessage = async (sock, m) => {
         // Rate Limiter
         const now = Date.now();
         const lastMsgTime = rateLimitMap.get(jid) || 0;
-        if (now - lastMsgTime < 1000) { // 1 second cooldown
-            console.log(`[RATE-LIMIT] Ignoring message from ${jid}`);
-            return;
-        }
+        if (now - lastMsgTime < 1000) return;
         rateLimitMap.set(jid, now);
 
         const type = getContentType(msg.message);
@@ -52,7 +63,7 @@ export const handleMessage = async (sock, m) => {
         switch (command) {
             case 'halo':
             case 'hi':
-                await sock.sendMessage(jid, { text: 'Halo! Saya adalah Ye-Baileys Ultimate Bot. Ada yang bisa saya bantu?' });
+                await sock.sendMessage(jid, { text: 'Halo! Saya adalah Ye-Baileys Ultimate Bot.' });
                 break;
 
             case 'ping':
@@ -60,20 +71,101 @@ export const handleMessage = async (sock, m) => {
                 break;
 
             case 'status': {
-                const uptime = Math.floor((Date.now() - startTime) / 1000);
-                const hours = Math.floor(uptime / 3600);
-                const minutes = Math.floor((uptime % 3600) / 60);
-                const seconds = uptime % 60;
-                await sock.sendMessage(jid, { text: `*Ye-Baileys Ultimate Status:*
-Uptime: ${hours}h ${minutes}m ${seconds}s
-Prefix: ${config.prefix}
-Anti-Delete: Enabled
-Rate-Limiter: Enabled (1s)` });
+                await sock.sendMessage(jid, { text: `*Status:* ${runtime(process.uptime())}` });
+                break;
+            }
+
+            case 'allmenu': {
+                const timestampe = speed();
+                const latensie = speed() - timestampe;
+                const prefix = config.prefix;
+                const menu = `
+*⟨ INFO BOT ⟩*
+▪️ *System*: ${config.botName}
+▪️ *Build*: C1.3.0
+▪️ *Latency*: ${latensie.toFixed(4)}ms
+▪️ *Uptime*: ${runtime(process.uptime())}
+
+List Group
+▫️ ${prefix}leavegc
+▫️ ${prefix}leavegcbyid
+▫️ ${prefix}open
+▫️ ${prefix}close
+▫️ ${prefix}opentime
+▫️ ${prefix}closetime
+▫️ ${prefix}hidetag
+▫️ ${prefix}ht
+▫️ ${prefix}everyone
+▫️ ${prefix}welcome
+▫️ ${prefix}setwelcome
+▫️ ${prefix}setleave
+▫️ ${prefix}antilinkgc
+▫️ ${prefix}antitaggc
+▫️ ${prefix}antibot
+
+List Download
+▫️ ${prefix}ai
+
+List Download
+▫️ ${prefix}spotify
+▫️ ${prefix}igdl
+▫️ ${prefix}tt
+▫️ ${prefix}play
+▫️ ${prefix}ytmp3
+▫️ ${prefix}ytmp4
+
+List Maker
+▫️ ${prefix}animbrat
+▫️ ${prefix}ktp-maker
+▫️ ${prefix}brat
+▫️ ${prefix}bratvid
+▫️ ${prefix}sticker
+
+List Game
+▫️ ${prefix}tebak lagu
+▫️ ${prefix}kuis math
+▫️ ${prefix}tebak gambar
+▫️ ${prefix}tebak kata
+▫️ ${prefix}tebak kalimat
+▫️ ${prefix}tebak lirik
+▫️ ${prefix}tebak tebakan
+▫️ ${prefix}tebak bendera
+▫️ ${prefix}tebak bendera2
+▫️ ${prefix}tebak kabupaten
+▫️ ${prefix}tebak kimia
+▫️ ${prefix}tebak asahotak
+▫️ ${prefix}tebak siapakahaku
+▫️ ${prefix}tebak susunkata
+▫️ ${prefix}tebak tekateki
+▫️ ${prefix}tebak jkt48
+
+List Owner
+▫️ ${prefix}leavegc
+▫️ ${prefix}setexif
+▫️ ${prefix}self
+▫️ ${prefix}public
+▫️ ${prefix}join
+
+List Tools
+▫️ ${prefix}translate
+▫️ ${prefix}reactch
+▫️ ${prefix}cekidch
+▫️ ${prefix}cekidgc
+▫️ ${prefix}hitamkan
+▫️ ${prefix}toimg
+▫️ ${prefix}reactch
+▫️ ${prefix}hd
+▫️ ${prefix}tourl
+▫️ ${prefix}spam-pairing
+▫️ ${prefix}jarak
+`;
+                await sock.sendMessage(jid, { text: menu });
                 break;
             }
 
             case 'menu': {
                 const menuText = `*Ye-Baileys Ultimate Menu:*
+- .allmenu: Daftar semua fitur
 - .halo: Sapa bot
 - .ping: Cek koneksi
 - .status: Status bot
