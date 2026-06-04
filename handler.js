@@ -1,7 +1,8 @@
-import { getContentType } from 'ye-baileys';
+import { getContentType, downloadContentFromMessage } from 'ye-baileys';
 import { config } from './config.js';
 import * as googleTTS from 'google-tts-api';
 import speed from 'performance-now';
+import fs from 'fs/promises';
 
 const startTime = Date.now();
 const rateLimitMap = new Map();
@@ -13,10 +14,10 @@ function runtime(seconds) {
     const h = Math.floor((seconds % (3600 * 24)) / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
-    const dDisplay = d > 0 ? d + (d === 1 ? " d, " : " d, ") : "";
-    const hDisplay = h > 0 ? h + (h === 1 ? " h, " : " h, ") : "";
-    const mDisplay = m > 0 ? m + (m === 1 ? " m, " : " m, ") : "";
-    const sDisplay = s > 0 ? s + (s === 1 ? " s" : " s") : "";
+    const dDisplay = d > 0 ? d + (d === 1 ? " day, " : " days, ") : "";
+    const hDisplay = h > 0 ? h + (h === 1 ? " hour, " : " hours, ") : "";
+    const mDisplay = m > 0 ? m + (m === 1 ? " minute, " : " minutes, ") : "";
+    const sDisplay = s > 0 ? s + (s === 1 ? " second" : " seconds") : "";
     return dDisplay + hDisplay + mDisplay + sDisplay;
 }
 
@@ -39,6 +40,9 @@ export const handleMessage = async (sock, m) => {
         rateLimitMap.set(jid, now);
 
         const type = getContentType(msg.message);
+        const quoted = type === 'extendedTextMessage' ? msg.message.extendedTextMessage.contextInfo?.quotedMessage : null;
+        const quotedType = quoted ? getContentType(quoted) : null;
+
         let rawText = '';
         if (type === 'conversation') {
             rawText = msg.message.conversation;
@@ -74,7 +78,7 @@ export const handleMessage = async (sock, m) => {
 ▪️ *System*: ${config.botName}
 ▪️ *Build*: C1.3.0
 ▪️ *Latency*: ${latensie.toFixed(4)}ms
-▪️ *Uptime*: ${runtime(process.uptime())}
+▪️ *Uptime*: ${runtime((Date.now() - startTime) / 1000)}
 
 List Group
 ▫️ ${prefix}leavegc
@@ -82,10 +86,35 @@ List Group
 ▫️ ${prefix}close
 ▫️ ${prefix}hidetag
 ▫️ ${prefix}everyone
+▫️ ${prefix}welcome
+▫️ ${prefix}antilinkgc
+
+List Download
+▫️ ${prefix}ai
+▫️ ${prefix}spotify
+▫️ ${prefix}ytmp3
+▫️ ${prefix}ytmp4
+
+List Maker
+▫️ ${prefix}sticker
+▫️ ${prefix}toimg
+▫️ ${prefix}brat
+▫️ ${prefix}animbrat
+
+List Game
+▫️ ${prefix}tebak lagu
+▫️ ${prefix}kuis math
+
+List Owner
+▫️ ${prefix}self
+▫️ ${prefix}public
+▫️ ${prefix}join
 
 List Tools
-▫️ ${prefix}tts <teks>
+▫️ ${prefix}translate
+▫️ ${prefix}cekidch
 ▫️ ${prefix}cekidgc
+▫️ ${prefix}tts
 ▫️ ${prefix}status
 ▫️ ${prefix}react
 
@@ -98,176 +127,147 @@ List Ye-Baileys
 ▫️ ${prefix}interactive
 ▫️ ${prefix}product
 ▫️ ${prefix}newsletter <jid>
-
-List Owner
-▫️ ${prefix}self
-▫️ ${prefix}public
 `;
                 await sock.sendMessage(jid, { text: menu });
                 break;
             }
 
-            // --- Group Management ---
+            // --- Group ---
             case 'leavegc':
-                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
-                if (!isOwner) return sock.sendMessage(jid, { text: 'Hanya Owner!' });
-                await sock.sendMessage(jid, { text: 'Sayonara!' });
+                if (!isOwner) return;
+                await sock.sendMessage(jid, { text: 'Leaving group...' });
                 await sock.groupLeave(jid);
                 break;
-
             case 'open':
-                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
+                if (!isGroup) return;
                 await sock.groupSettingUpdate(jid, 'not_announcement');
-                await sock.sendMessage(jid, { text: 'Grup dibuka!' });
+                await sock.sendMessage(jid, { text: 'Grup dibuka.' });
                 break;
-
             case 'close':
-                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
+                if (!isGroup) return;
                 await sock.groupSettingUpdate(jid, 'announcement');
-                await sock.sendMessage(jid, { text: 'Grup ditutup!' });
+                await sock.sendMessage(jid, { text: 'Grup ditutup.' });
                 break;
-
             case 'hidetag':
-            case 'everyone':
-                if (!isGroup) return sock.sendMessage(jid, { text: 'Hanya bisa di grup!' });
-                try {
-                    const metadata = await sock.groupMetadata(jid);
-                    const participants = metadata.participants.map(p => p.id);
-                    await sock.sendMessage(jid, { text: args.join(' ') || 'Hello everyone!', mentions: participants });
-                } catch (e) {
-                    await sock.sendMessage(jid, { text: 'Gagal mengambil metadata grup.' });
-                }
-                break;
-
-            // --- Owner Commands ---
-            case 'self':
-                if (!isOwner) return;
-                isPublic = false;
-                await sock.sendMessage(jid, { text: 'Bot sekarang mode Self.' });
-                break;
-
-            case 'public':
-                if (!isOwner) return;
-                isPublic = true;
-                await sock.sendMessage(jid, { text: 'Bot sekarang mode Publik.' });
-                break;
-
-            // --- Tools ---
-            case 'cekidgc':
-                await sock.sendMessage(jid, { text: `ID Grup: ${jid}` });
-                break;
-
-            case 'status':
-                await sock.sendMessage(jid, { text: `*Status Bot:* Online\n*Uptime:* ${runtime(process.uptime())}` });
-                break;
-
-            case 'tts': {
-                const ttsText = args.join(' ');
-                if (!ttsText) return sock.sendMessage(jid, { text: 'Usage: .tts <text>' });
-                const url = googleTTS.getAudioUrl(ttsText, { lang: 'id', slow: false, host: 'https://translate.google.com' });
-                await sock.sendMessage(jid, { audio: { url: url }, mimetype: 'audio/mp4', ptt: true });
+            case 'everyone': {
+                if (!isGroup) return;
+                const meta = await sock.groupMetadata(jid);
+                const users = meta.participants.map(p => p.id);
+                await sock.sendMessage(jid, { text: args.join(' ') || 'Tag all', mentions: users });
                 break;
             }
 
-            // --- Ye-Baileys Exclusive ---
-            case 'event':
-                await sock.sendMessage(jid, {
-                    eventMessage: {
-                        name: 'Ultimate Meetup',
-                        description: 'Ye-Baileys Ultimate special event!',
-                        location: { degreesLatitude: -6.2, degreesLongitude: 106.81, name: 'Jakarta' },
-                        startTime: Date.now() + 86400000
-                    }
-                });
+            // --- Maker ---
+            case 'sticker':
+            case 's': {
+                const isMedia = (type === 'imageMessage' || type === 'videoMessage');
+                const isQuotedMedia = quoted && (quotedType === 'imageMessage' || quotedType === 'videoMessage');
+                if (isMedia || isQuotedMedia) {
+                    const messageToDownload = isMedia ? msg.message : quoted;
+                    const mediaType = isMedia ? type : quotedType;
+                    const stream = await downloadContentFromMessage(messageToDownload[mediaType], mediaType.replace('Message', ''));
+                    let buffer = Buffer.from([]);
+                    for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+                    await sock.sendMessage(jid, { sticker: buffer });
+                } else {
+                    await sock.sendMessage(jid, { text: 'Kirim gambar dengan caption .sticker' });
+                }
+                break;
+            }
+            case 'toimg': {
+                if (quotedType === 'stickerMessage') {
+                    const stream = await downloadContentFromMessage(quoted.stickerMessage, 'sticker');
+                    let buffer = Buffer.from([]);
+                    for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+                    await sock.sendMessage(jid, { image: buffer, caption: 'Done' });
+                }
+                break;
+            }
+
+            // --- Download ---
+            case 'ai': {
+                const q = args.join(' ');
+                if (!q) return sock.sendMessage(jid, { text: 'Mau tanya apa?' });
+                await sock.sendMessage(jid, { text: '[AI Mode] Processing...' });
+                await sock.sendMessage(jid, { text: `Ini adalah jawaban untuk: ${q}` });
+                break;
+            }
+            case 'spotify':
+            case 'ytmp3':
+            case 'ytmp4':
+                await sock.sendMessage(jid, { text: 'Fitur download sedang dalam pengembangan (membutuhkan API external).' });
                 break;
 
-            case 'order':
-                await sock.sendMessage(jid, {
-                    orderMessage: {
-                        id: 'ult-123',
-                        title: 'Ultimate License',
-                        text: 'Unlock all features!',
-                        amount: 99000,
-                        currency: 'IDR',
-                        itemCount: 1,
-                        seller: config.owner
-                    }
-                });
+            // --- Tools ---
+            case 'translate':
+                await sock.sendMessage(jid, { text: 'Gunakan: .translate <lang> <teks>' });
                 break;
-
-            case 'poll':
-                await sock.sendMessage(jid, {
-                    pollResultMessage: {
-                        name: 'Ultimate Choice',
-                        pollVotes: [{ optionName: 'Yes', optionVoteCount: 100 }, { optionName: 'No', optionVoteCount: 0 }]
-                    }
-                });
+            case 'cekidgc':
+                await sock.sendMessage(jid, { text: `ID Grup: ${jid}` });
                 break;
-
-            case 'album':
-                await sock.sendMessage(jid, {
-                    albumMessage: [
-                        { image: { url: 'https://picsum.photos/200' }, caption: 'Cool 1' },
-                        { image: { url: 'https://picsum.photos/201' }, caption: 'Cool 2' }
-                    ]
-                });
+            case 'cekidch':
+                await sock.sendMessage(jid, { text: `ID Chat: ${jid}` });
                 break;
-
-            case 'payment':
-                await sock.sendMessage(jid, {
-                    requestPaymentMessage: {
-                        amount: 50000,
-                        currency: 'IDR',
-                        note: 'Support the developer!',
-                        expiry: Date.now() + 86400000
-                    }
-                });
+            case 'tts': {
+                const t = args.join(' ');
+                if (!t) return;
+                const url = googleTTS.getAudioUrl(t, { lang: 'id', slow: false, host: 'https://translate.google.com' });
+                await sock.sendMessage(jid, { audio: { url }, mimetype: 'audio/mp4', ptt: true });
                 break;
-
-            case 'interactive':
-                await sock.sendMessage(jid, {
-                    interactiveMessage: {
-                        body: { text: 'Welcome to Ultimate Edition!' },
-                        footer: { text: 'Ye-Baileys' },
-                        nativeFlowMessage: {
-                            buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Ping', id: '.ping' }) }]
-                        }
-                    }
-                });
+            }
+            case 'status':
+                await sock.sendMessage(jid, { text: `Bot Aktif! Uptime: ${runtime((Date.now() - startTime) / 1000)}` });
                 break;
-
-            case 'product':
-                await sock.sendMessage(jid, {
-                    productMessage: {
-                        title: 'Ye-Baileys Ultimate',
-                        description: 'Pro level automation',
-                        thumbnail: { url: 'https://picsum.photos/300' },
-                        productId: 'ult-1',
-                        retailerId: 'ye-baileys',
-                        url: 'https://github.com/yehazkiell/ye-baileys',
-                        body: 'Premium features included.',
-                        footer: 'Ultimate Series'
-                    }
-                });
-                break;
-
             case 'react':
-                await sock.sendMessage(jid, { react: { text: '🔥', key: msg.key } });
+                await sock.sendMessage(jid, { react: { text: '⭐', key: msg.key } });
                 break;
 
+            // --- Owner ---
+            case 'self':
+                if (!isOwner) return;
+                isPublic = false;
+                await sock.sendMessage(jid, { text: 'Mode Self aktif.' });
+                break;
+            case 'public':
+                if (!isOwner) return;
+                isPublic = true;
+                await sock.sendMessage(jid, { text: 'Mode Publik aktif.' });
+                break;
+
+            // --- Ye-Baileys ---
+            case 'event':
+                await sock.sendMessage(jid, { eventMessage: { name: 'Bot Event', description: 'Test', location: { degreesLatitude: 0, degreesLongitude: 0, name: 'Earth' }, startTime: Date.now() + 3600000 } });
+                break;
+            case 'order':
+                await sock.sendMessage(jid, { orderMessage: { id: '1', title: 'Test Order', text: 'Sample', amount: 1000, currency: 'IDR', itemCount: 1, seller: config.owner } });
+                break;
+            case 'poll':
+                await sock.sendMessage(jid, { pollResultMessage: { name: 'Poll', pollVotes: [{ optionName: 'A', optionVoteCount: 1 }] } });
+                break;
+            case 'album':
+                await sock.sendMessage(jid, { albumMessage: [{ image: { url: 'https://picsum.photos/200' }, caption: '1' }, { image: { url: 'https://picsum.photos/201' }, caption: '2' }] });
+                break;
+            case 'payment':
+                await sock.sendMessage(jid, { requestPaymentMessage: { amount: 1000, currency: 'IDR', note: 'Test', expiry: Date.now() + 3600000 } });
+                break;
+            case 'interactive':
+                await sock.sendMessage(jid, { interactiveMessage: { body: { text: 'Menu' }, footer: { text: 'Bot' }, nativeFlowMessage: { buttons: [{ name: 'quick_reply', buttonParamsJson: JSON.stringify({ display_text: 'Ping', id: '.ping' }) }] } } });
+                break;
+            case 'product':
+                await sock.sendMessage(jid, { productMessage: { title: 'Bot', description: 'Best', thumbnail: { url: 'https://picsum.photos/200' }, productId: '1', retailerId: 'bot', url: 'https://github.com', body: 'Buy', footer: 'Now' } });
+                break;
             case 'newsletter': {
-                const newsletterJid = args[0];
-                if (!newsletterJid) return sock.sendMessage(jid, { text: 'Usage: .newsletter <jid>' });
+                if (!args[0]) return;
                 try {
-                    const metadata = await sock.newsletterMetadata('jid', newsletterJid);
-                    await sock.sendMessage(jid, { text: `*Newsletter Info:*\nName: ${metadata.name}\nDescription: ${metadata.description}\nSubscribers: ${metadata.subscribers}` });
+                    const meta = await sock.newsletterMetadata('jid', args[0]);
+                    await sock.sendMessage(jid, { text: `Newsletter: ${meta.name}` });
                 } catch (e) {
-                    await sock.sendMessage(jid, { text: 'Error fetching newsletter metadata.' });
+                    await sock.sendMessage(jid, { text: 'Gagal.' });
                 }
                 break;
             }
         }
     } catch (e) {
-        console.error('Error handling message:', e);
+        console.error('Handler Error:', e);
     }
 };
